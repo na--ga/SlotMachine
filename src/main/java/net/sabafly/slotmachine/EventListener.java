@@ -60,7 +60,7 @@ public class EventListener implements Listener {
 
         if (!(entity instanceof ItemFrame itemFrame)) return;
 
-        if (!itemFrame.getItem().isEmpty()) return;
+        if (itemFrame.getItem().getType() != Material.AIR) return;
 
         if (itemFrame.getFacing().getModY() != 0) return;
 
