@@ -194,7 +194,7 @@ public class EventListener implements Listener {
             prizeMenu.close(event.getPlayer());
         } else if (inventory.getHolder(false) instanceof ExchangeMenu exchangeMenu) {
             if (exchangeMenu.close())
-                SlotMachine.newChain().delay(10).sync(() -> event.getPlayer().openInventory(exchangeMenu.getInventory())).execute();
+                SlotMachine.getPlugin().getGlobalRegionScheduler().runDelayed(SlotMachine.getPlugin(), (task) -> event.getPlayer().openInventory(exchangeMenu.getInventory()), 10);
         }
     }
 
@@ -223,7 +223,7 @@ public class EventListener implements Listener {
             event.setCancelled(true);
             ConfigMenu menu = new ConfigMenu(this.plugin, slot);
 
-            SlotMachine.newChain().sync(() -> player.openInventory(menu.getInventory())).execute();
+            SlotMachine.getPlugin().getGlobalRegionScheduler().run(SlotMachine.getPlugin(), (task) -> player.openInventory(menu.getInventory()));
             return;
         }
 

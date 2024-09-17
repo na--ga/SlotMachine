@@ -13,6 +13,9 @@ import org.spongepowered.configurate.loader.ConfigurationLoader;
 import org.spongepowered.configurate.loader.HeaderMode;
 import org.spongepowered.configurate.yaml.NodeStyle;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+import io.papermc.paper.threadedregions.scheduler.AsyncScheduler;
+import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.io.File;
 import java.util.*;
@@ -27,7 +30,7 @@ public class ScreenManager implements Listener {
 
     private static final Map<MapScreen, Machine<?>> screenMap = new HashMap<>();
 
-    private static final Map<UUID, BukkitTask> taskMap = new HashMap<>();
+    private static final Map<UUID, ScheduledTask> taskMap = new HashMap<>();
 
     public static Map<UUID, Set<UUID>> getViewerMap() {
         return viewerMap;
@@ -56,7 +59,7 @@ public class ScreenManager implements Listener {
         event.setCancelled(true);
     }
 
-    public static void load(final File dataFolder, BukkitScheduler scheduler) throws ConfigurateException {
+    public static void load(final File dataFolder, GlobalRegionScheduler globalRegionScheduler, AsyncScheduler asyncScheduler) throws ConfigurateException {
         dataFolder.mkdirs();
         final File[] files = dataFolder.listFiles();
         if (files == null) return;
@@ -65,7 +68,7 @@ public class ScreenManager implements Listener {
             SlotMachine.getPlugin().getLogger().info("Loading " + file.getName());
             final Machine<?> machine = Machine.of(file);
             machine.getScreen().sendMaps(true);
-            registerMachine(machine, scheduler);
+            registerMachine(machine, globalRegionScheduler, asyncScheduler);
         }
     }
 
@@ -81,17 +84,16 @@ public class ScreenManager implements Listener {
         }
     }
 
-    public static void registerMachine(Machine<?> machine, BukkitScheduler scheduler) {
+    public static void registerMachine(Machine<?> machine, GlobalRegionScheduler globalRegionScheduler, AsyncScheduler asyncScheduler) {
         getMachineMap().put(machine.getUniqueId(), machine);
         getScreenMap().put(machine.getScreen(), machine);
         getViewerMap().put(machine.getUniqueId(), new HashSet<>());
 
-        BukkitTask task = scheduler.runTaskTimerAsynchronously(SlotMachine.getPlugin(), machine, 1L, 0);
+        ScheduledTask task = asyncScheduler.runAtFixedRate(SlotMachine.getPlugin(), (t) -> machine.run(), 1, 1);
 
         SlotMachine.getPlugin().getLogger().info("registered machine: " + machine.getUniqueId());
 
         taskMap.put(machine.getUniqueId(), task);
-
     }
 
     public static void destroyMachine(Machine<?> machine) {
@@ -99,12 +101,11 @@ public class ScreenManager implements Listener {
         getScreenMap().remove(machine.getScreen());
         getViewerMap().remove(machine.getUniqueId());
 
-        BukkitTask task = taskMap.get(machine.getUniqueId());
+        ScheduledTask task = taskMap.get(machine.getUniqueId());
         if (task != null) {
             task.cancel();
             taskMap.remove(machine.getUniqueId());
         }
-
     }
 
 }

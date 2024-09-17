@@ -19,6 +19,8 @@ import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.loader.HeaderMode;
 import org.spongepowered.configurate.yaml.NodeStyle;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
+import io.papermc.paper.threadedregions.scheduler.AsyncScheduler;
+import io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler;
 
 import java.io.File;
 import java.util.logging.Logger;
@@ -39,6 +41,9 @@ public final class SlotMachine extends JavaPlugin {
             return false;
         }
     }
+
+    private GlobalRegionScheduler globalRegionScheduler;
+    private AsyncScheduler asyncScheduler;
 
     @Override
     public void onEnable() {
@@ -79,13 +84,16 @@ public final class SlotMachine extends JavaPlugin {
                 isFloodgate = true;
             }
 
-            newChain().delay(1).async(() -> {
+            this.globalRegionScheduler = Bukkit.getGlobalRegionScheduler();
+            this.asyncScheduler = Bukkit.getAsyncScheduler();
+
+            asyncScheduler.runNow(this, (task) -> {
                 try {
-                    ScreenManager.load(new File(getDataFolder(),"data"), Bukkit.getScheduler());
+                    ScreenManager.load(new File(getDataFolder(),"data"), globalRegionScheduler, asyncScheduler);
                 } catch (ConfigurateException e) {
                     throw new RuntimeException(e);
                 }
-            }).execute();
+            });
         }
     }
 
@@ -153,4 +161,11 @@ public final class SlotMachine extends JavaPlugin {
         return isFloodgate;
     }
 
+    public GlobalRegionScheduler getGlobalRegionScheduler() {
+        return globalRegionScheduler;
+    }
+
+    public AsyncScheduler getAsyncScheduler() {
+        return asyncScheduler;
+    }
 }
